@@ -2,226 +2,128 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Inter } from "next/font/google";
+import axios from "axios";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
-  const [amount1, setAmount1] = useState("");
-  const [amount2, setAmount2] = useState("");
-  const [fromCurrency, setFromCurrency] = useState("inr");
-  const [toCurrency, setToCurrency] = useState("USD");
-  const [rates, setRates] = useState();
-  const [ratesFetched, setRatesFetched] = useState(false);
-
-  const getRates = async () => {
-    // fetch the data from API
-    const response = await (await fetch(`https://v6.exchangerate-api.com/v6/59d560835c4e8d4f996adc83/latest/inr`)).json();
-    // save the rates in the state
-    console.log(response.conversion_rates)
-    if (response.result === "success") {
-      setRates(response.conversion_rates);
-      setAmount1(response.conversion_rates.INR)
-      setAmount2(response.conversion_rates.USD)
-      setRatesFetched(true);
-    }
-  };
-
+  const [amount1, setAmount1] = useState(0);
+  const [amount2, setAmount2] = useState(0);
+  const [currency1, setCurrency1] = useState("inr");
+  const [currency2, setCurrency2] = useState("usd");
+  const [exchangeRates, setExchangeRates] = useState(null);
+  const [date, setDate] = useState("");
+  const d = new Date();
   useEffect(() => {
-    getRates();
-  }, []);
+    const fetchExchangeRates = async () => {
+      try {
+        setExchangeRates(null);
+        const response = await axios.get(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currency1}.json`);
+        setExchangeRates(response.data[currency1]);
+        setDate(`${d.getDate() + " " + d.toLocaleString("default", { month: "short" }) + ", " + d.toLocaleString([], { hour: "2-digit", minute: "2-digit" })}`);
+      } catch (error) {
+        console.error("Error fetching exchange rates:", error);
+      }
+    };
+    fetchExchangeRates();
+  }, [currency1]); // currency2
 
-  useEffect(() => {
-    // const calculateOutput = 
-    (async () => {
-      // fetch the selected from currency rates
-      const response = await(await fetch(`https://v6.exchangerate-api.com/v6/59d560835c4e8d4f996adc83/latest/${fromCurrency}`)).json();
-      const fetchedRates = response.conversion_rates;
-      const CurrencyRate = fetchedRates[toCurrency];
-      console.log(CurrencyRate)
-      const output = amount1 * CurrencyRate;
-      setAmount2(output);
-    })();
-  }, [amount1,fromCurrency,toCurrency]);
-
-  // useEffect(() => {
-  //   // const calculateOutput = 
-  //   (async () => {
-  //     // fetch the selected from currency rates
-  //     const response = await(await fetch(`https://v6.exchangerate-api.com/v6/59d560835c4e8d4f996adc83/latest/${fromCurrency}`)).json();
-  //     const fetchedRates = response.conversion_rates;
-  //     const CurrencyRate = fetchedRates[fromCurrency];
-  //     const output = amount1 * CurrencyRate;
-  //     setAmount1(output);
-  //   })();
-  // }, [amount2,fromCurrency,toCurrency]);
-
-  const handleInputChange1 = async (e) => {
-    // const [data, setData] = useState({});
-    // useEffect(() => {
-    //   (async () => {
-    //     const response = await (await fetch(`https://v6.exchangerate-api.com/v6/59d560835c4e8d4f996adc83/latest/${currency1}`)).json();
-    //     setData(response[currency]);
-    //   })();
-    // }, [amount1])
-
+  const handleAmount1Change = (e) => {
     const value = e.target.value;
     setAmount1(value);
-    const response = await(await fetch(`https://v6.exchangerate-api.com/v6/59d560835c4e8d4f996adc83/latest/${fromCurrency}`)).json();
-      const fetchedRates = response.conversion_rates;
-      const CurrencyRate = fetchedRates[toCurrency];
-      const output = amount1 * CurrencyRate;
-      setAmount2(output);
-    // setAmount2(value*2);
-    
+    setAmount2((parseFloat(value) * exchangeRates[currency2]).toFixed(2));
   };
 
-  const handleInputChange2 = (e) => {
+  const handleAmount2Change = (e) => {
     const value = e.target.value;
-    setAmount1(value * 2);
     setAmount2(value);
+    setAmount1((parseFloat(value) / exchangeRates[currency2]).toFixed(2));
   };
+
+  const handleCurrency1Change = (e) => {
+    const selectedCurrency = e.target.value;
+    setCurrency1(e.target.value);
+    setAmount1(0);
+    setAmount2(0);
+  };
+
+  const handleCurrency2Change = (e) => {
+    const selectedCurrency = e.target.value;
+    setCurrency2(selectedCurrency);
+    setAmount2((parseFloat(amount1) * exchangeRates[selectedCurrency]).toFixed(2));
+  };
+
+  const blockInvalidChar = (e) =>
+    ["+", "-", "*", "/", "=", "&", "^", "%", "$", "₹", "#", "@", "!", "~", "`", '"', "?", "<", ">", ":", ";", "[", "]", "{", "}", "|", "_", "(", ")"].includes(e.key) &&
+    e.preventDefault();
+
   return (
-    <div className="text-black">
-      <label className="text-white">
-        Input 1:
-        <input className="text-black" type="number" value={amount1} onChange={handleInputChange1} />
-      </label>
-      <select id="from" value={fromCurrency} onChange={(e) => setFromCurrency(e.target.value)}>
-        {ratesFetched ? (
-          Object.keys(rates).map((currency, index) => (
-            <option key={index} value={currency}>
-              {currency}
-            </option>
-          ))
-        ) : (
-          <option defaultValue>INR</option>
-        )}
-      </select>
-
-      <label className="text-white">
-        Input 2:
-        <input className="text-black" type="number" value={amount2} onChange={handleInputChange2} />
-      </label>
-      <select id="to" value={toCurrency} onChange={(e) => setToCurrency(e.target.value)}>
-        {ratesFetched ? (
-          Object.keys(rates).map((currency, index) => (
-            <option key={index} value={currency}>
-              {currency}
-            </option>
-          ))
-        ) : (
-          <option defaultValue>USD</option>
-        )}
-      </select>
-    </div>
-    // <main
-    //   className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    // >
-    //   <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-    //     <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-    //       Get started by editing&nbsp;
-    //       <code className="font-mono font-bold">src/pages/index.js</code>
-    //     </p>
-    //     <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-    //       <a
-    //         className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-    //         href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-    //         target="_blank"
-    //         rel="noopener noreferrer"
-    //       >
-    //         By{' '}
-    //         <Image
-    //           src="/vercel.svg"
-    //           alt="Vercel Logo"
-    //           className="dark:invert"
-    //           width={100}
-    //           height={24}
-    //           priority
-    //         />
-    //       </a>
-    //     </div>
-    //   </div>
-
-    //   <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-    //     <Image
-    //       className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-    //       src="/next.svg"
-    //       alt="Next.js Logo"
-    //       width={180}
-    //       height={37}
-    //       priority
-    //     />
-    //   </div>
-
-    //   <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-    //     <a
-    //       href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-    //       className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       <h2 className={`mb-3 text-2xl font-semibold`}>
-    //         Docs{' '}
-    //         <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-    //           -&gt;
-    //         </span>
-    //       </h2>
-    //       <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-    //         Find in-depth information about Next.js features and API.
-    //       </p>
-    //     </a>
-
-    //     <a
-    //       href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-    //       className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       <h2 className={`mb-3 text-2xl font-semibold`}>
-    //         Learn{' '}
-    //         <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-    //           -&gt;
-    //         </span>
-    //       </h2>
-    //       <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-    //         Learn about Next.js in an interactive course with&nbsp;quizzes!
-    //       </p>
-    //     </a>
-
-    //     <a
-    //       href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-    //       className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       <h2 className={`mb-3 text-2xl font-semibold`}>
-    //         Templates{' '}
-    //         <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-    //           -&gt;
-    //         </span>
-    //       </h2>
-    //       <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-    //         Discover and deploy boilerplate example Next.js&nbsp;projects.
-    //       </p>
-    //     </a>
-
-    //     <a
-    //       href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-    //       className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       <h2 className={`mb-3 text-2xl font-semibold`}>
-    //         Deploy{' '}
-    //         <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-    //           -&gt;
-    //         </span>
-    //       </h2>
-    //       <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-    //         Instantly deploy your Next.js site to a shareable URL with Vercel.
-    //       </p>
-    //     </a>
-    //   </div>
-    // </main>
+    <>
+      <div className="flex h-screen text-white items-center justify-center">
+        <div className=" m-auto px-4 py-8 justify-center max-w-sm w-full">
+          {exchangeRates && <div className="flex items-center font-sans text-2xl h-7 text-[#9aa0a6]">1 {currency1.toUpperCase()} equals</div>}
+          <div className="font-sans font-semibold text-4xl leading-[57px] color-[#e8eaed] ">
+            {exchangeRates ? `${exchangeRates[currency2].toFixed(2)} ${currency2.toUpperCase()} ` : "Loading..."}
+          </div>
+          <div className="text-[#9aa0a6] text-lg mt-2 mb-5">{date} · Disclaimer</div>
+          <div className="w-full relative flex justify-between pb-0 top-0">
+            <div className="relative w-full block">
+              <div className="p-1 caret-[#8ab4f8] border-[2px] border-solid border-[#5f6368] rounded-md color-[#9aa0a6] overflow-hidden flex mb-5 hover:border-[#8ab4f8] hover:border-[2px] ">
+                <input
+                  type="number"
+                  value={amount1}
+                  onChange={handleAmount1Change}
+                  min={0}
+                  step={1}
+                  onKeyDown={blockInvalidChar}
+                  className="w-[50%] outline-0 m-0 overflow-hidden text-left leading-6 py-1 pl-2 pr-3 bg-[#202124] text-xl h-12 text-[#bdc1c6] "
+                />
+                <div className="bg-[#202124] overflow-hidden relative h-12 inline-block grow-[2]">
+                  <div className="border-l-[2px] solid border-[#3c4043] absolute top-2 bottom-2 z-[3]"></div>
+                  <select
+                    value={currency1}
+                    onChange={handleCurrency1Change}
+                    className="outline-0  z-[1] leading-10 h-12 w-full absolute text-white text-right ml-1 bg-[#202124] pr-3 appearance-none "
+                  >
+                    {exchangeRates &&
+                      Object.keys(exchangeRates).map((currency) => (
+                        <option key={currency} value={currency} className="focus:bg-black">
+                          {currency.toUpperCase()}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+              <div className="p-1 caret-[#8ab4f8] border-[2px] border-solid border-[#5f6368] rounded-md color-[#9aa0a6] overflow-hidden flex mb-3 hover:border-[#8ab4f8] hover:border-[2px]">
+                <input
+                  type="number"
+                  value={amount2}
+                  onChange={handleAmount2Change}
+                  min={0}
+                  step={1}
+                  onKeyDown={blockInvalidChar}
+                  className="w-[50%] outline-0 m-0 overflow-hidden text-left leading-6 py-1 pl-2 pr-3 bg-[#202124] text-xl h-12 text-[#bdc1c6] "
+                />
+                <div className="bg-[#202124] overflow-hidden relative h-12 inline-block grow-[2]">
+                  <div className="border-l-[2px] solid border-[#3c4043] absolute top-2 bottom-2 z-[3]"></div>
+                  <select
+                    value={currency2}
+                    onChange={handleCurrency2Change}
+                    className="outline-0  z-[1] leading-10 h-12 w-full absolute text-white text-right ml-1 bg-[#202124] pr-3 appearance-none "
+                  >
+                    {exchangeRates &&
+                      Object.keys(exchangeRates).map((currency) => (
+                        <option key={currency} value={currency} className="">
+                          {currency.toUpperCase()}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

@@ -13,7 +13,7 @@ const CurrencyConverter = () => {
     const fetchExchangeRates = async () => {
       try {
         setExchangeRates(null);
-        const response = await axios.get(`https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/${currency1}.json`);
+        const response = await axios.get(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currency1}.json`);
         setExchangeRates(response.data[currency1]);
         setDate(`${d.getDate() + " " + d.toLocaleString("default", { month: "short" }) + ", " + d.toLocaleString([], { hour: "2-digit", minute: "2-digit" })}`);
       } catch (error) {
