@@ -1,5 +1,5 @@
 // https://blog.logrocket.com/build-dynamic-currency-converter-ecommerce-react-app/
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import axios from "axios";
